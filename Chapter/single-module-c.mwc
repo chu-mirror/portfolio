@@ -1,0 +1,73 @@
+## A simple C program
+
+This extension defines the structure of a simple C program.
+
+@[whole program@:C Module@]
+@{includes@}
+@{macros@}
+@{data@}
+@{prototypes@}
+@{functions@}
+@
+
+To initialize code chunks, because _MWEB(prototype)_ does not accept empty code chunk.
+@[macros@]
+
+@
+
+@[data@]
+
+@
+
+@[prototypes@]
+
+@
+
+@[functions@]
+
+@
+
+Some conventional header files.
+@[includes@]
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+#include <math.h>
+@
+
+You must have it, right?
+@[whole program@]
+int
+main(int argc, char *argv[])
+{
+	@{initialize environment@}
+	@{main@}
+}
+@
+
+@[initialize environment@]
+
+@
+
+A trick in debugging.
+@[data@]
+int fixed_point = 1;
+@
+
+@[single module C@:C Project@]
+CFLAGS=-g
+IN="@[whole program@:C Source@]"
+OUT="single-module-c"
+@{specification of output@}
+@
+
+@[specification of output@]
+
+@
+
+@[tangle@]
+@{user space@}
+(tangle-as "single module C" "C Program")
+@
+

@@ -1,0 +1,65 @@
+# MWEB(prototype) User Space
+
+@[user space@]
+@{dependencies of user space@}
+@{procedures of user space@}
+@{initialize user space@}
+@
+
+In most cases, what we want is not merely tangling a node, but also converting that node to
+another type, for example, if you wrote a C program and tangled the node of that C program's
+source code, you could get is a C source file, rather than an executable file.
+@[procedures of user space@]
+(define (tangle-as node-name type)
+  (mweb-convert-to (mweb-tangle node-name) (mweb-search-type node-name) type))
+@
+
+A lot of convertings are delegated to other programs.
+@[dependencies of user space@]
+(load-option 'synchronous-subprocess)
+@
+
+## Types
+
+@[initialize user space@]
+@{define code chunk types@}
+@
+
+### Executable
+
+@[define code chunk types@]
+(mweb-type "Executable" "Output" "Side Effect")
+
+(mweb-new-relation "Executable" "Side Effect"
+  (lambda (ref)
+    (run-shell-command (string-append "./" ref))
+    ref))
+@
+
+### Shell Script
+@[define code chunk types@]
+(mweb-type "Shell Script")
+(mweb-new-relation "Shell Script" "Executable"
+  (lambda (ref)
+    (run-shell-command (string-append "chmod +x " ref))
+    ref))
+@
+
+### C code
+Some definitions of types related to C programming language.
+@[define code chunk types@]
+(mweb-type "C Module" "C Source" "C Project" "C Program")
+(mweb-new-relation "C Module" "C Source" (lambda (ref) ref))
+(mweb-new-relation "C Project" "Shell Script"
+  (lambda (ref) @{extend |ref| to compiling script@}))
+(mweb-new-relation "Side Effect" "C Program" (lambda (ref) ref))
+@
+
+@[extend |ref| to compiling script@]
+(content->reference
+  (string-append "#!/bin/sh\n"
+                 (reference->content ref) "\n"
+		 "for f in $IN; do cp $f $f.c; INFILES=\"$INFILES $f.c\"; done\n"
+		 "gcc $CFLAGS -o $OUT $INFILES"))
+@
+

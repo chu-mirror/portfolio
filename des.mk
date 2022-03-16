@@ -1,1 +1,1 @@
-SUB = Cryptography
+SUB = Cryptography lab

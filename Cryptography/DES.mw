@@ -291,10 +291,8 @@ int PC_2[48] = {
 };
 @
 
-## Project Description
-
-@[specification of output@]
-OUT="DES"
+@[output@]
+(output "DES")
 @
 
 @i crypto-common.mwc

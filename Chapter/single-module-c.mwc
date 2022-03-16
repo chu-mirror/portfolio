@@ -68,6 +68,8 @@ OUT="single-module-c"
 
 @[tangle@]
 @{user space@}
-(tangle-as "single module C" "C Program")
+(define (output file)
+  (copy-as (mweb-convert-to (tangle-as "single module C" "C Program") "C Program" "Executable") file))
+@{output@}
 @
 

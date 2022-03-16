@@ -12,6 +12,9 @@ source code, you could get is a C source file, rather than an executable file.
 @[procedures of user space@]
 (define (tangle-as node-name type)
   (mweb-convert-to (mweb-tangle node-name) (mweb-search-type node-name) type))
+
+(define (copy-as ref des)
+  (run-shell-command (string-append "cp " ref " " des)))
 @
 
 A lot of convertings are delegated to other programs.
@@ -34,6 +37,11 @@ A lot of convertings are delegated to other programs.
   (lambda (ref)
     (run-shell-command (string-append "./" ref))
     ref))
+
+(mweb-new-relation "Executable" "Output"
+  (lambda (ref)
+    (run-shell-command (string-append "./" ref))
+    (file->reference "output")))
 @
 
 ### Shell Script
@@ -52,7 +60,11 @@ Some definitions of types related to C programming language.
 (mweb-new-relation "C Module" "C Source" (lambda (ref) ref))
 (mweb-new-relation "C Project" "Shell Script"
   (lambda (ref) @{extend |ref| to compiling script@}))
-(mweb-new-relation "Side Effect" "C Program" (lambda (ref) ref))
+(mweb-new-relation "Output" "C Program" (lambda (ref) ref))
+(mweb-new-relation "C Program" "Executable"
+  (lambda (ref)
+      (run-shell-command (string-append "chmod +x " ref))
+      ref))
 @
 
 @[extend |ref| to compiling script@]
@@ -60,6 +72,6 @@ Some definitions of types related to C programming language.
   (string-append "#!/bin/sh\n"
                  (reference->content ref) "\n"
 		 "for f in $IN; do cp $f $f.c; INFILES=\"$INFILES $f.c\"; done\n"
-		 "gcc $CFLAGS -o $OUT $INFILES"))
+		 "gcc $CFLAGS -o output $INFILES"))
 @
 

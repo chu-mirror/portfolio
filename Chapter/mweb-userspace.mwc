@@ -28,26 +28,10 @@ A lot of convertings are delegated to other programs.
 @{define code chunk types@}
 @
 
-### Executable
-
+### Unix Script
 @[define code chunk types@]
-(mweb-type "Executable" "Output" "Side Effect")
-
-(mweb-new-relation "Executable" "Side Effect"
-  (lambda (ref)
-    (run-shell-command (string-append "./" ref))
-    ref))
-
-(mweb-new-relation "Executable" "Output"
-  (lambda (ref)
-    (run-shell-command (string-append "./" ref))
-    (file->reference "output")))
-@
-
-### Shell Script
-@[define code chunk types@]
-(mweb-type "Shell Script")
-(mweb-new-relation "Shell Script" "Executable"
+(mweb-type "Unix Script")
+(mweb-new-relation "Unix Script" "Executable"
   (lambda (ref)
     (run-shell-command (string-append "chmod +x " ref))
     ref))
@@ -56,15 +40,15 @@ A lot of convertings are delegated to other programs.
 ### C code
 Some definitions of types related to C programming language.
 @[define code chunk types@]
-(mweb-type "C Module" "C Source" "C Project" "C Program")
+(mweb-type "C Module" "C Source" "C Program")
 (mweb-new-relation "C Module" "C Source" (lambda (ref) ref))
-(mweb-new-relation "C Project" "Shell Script"
-  (lambda (ref) @{extend |ref| to compiling script@}))
-(mweb-new-relation "Output" "C Program" (lambda (ref) ref))
 (mweb-new-relation "C Program" "Executable"
   (lambda (ref)
-      (run-shell-command (string-append "chmod +x " ref))
-      ref))
+    (let ((compile-script @{extend |ref| to compiling script@}))
+      (run-shell-command (string-append "sh " compile-script))
+      (let ((c-program (file->reference "a.out")))
+        (run-shell-command (string-append "chmod +x " c-program))
+	c-program))))
 @
 
 @[extend |ref| to compiling script@]
@@ -72,6 +56,6 @@ Some definitions of types related to C programming language.
   (string-append "#!/bin/sh\n"
                  (reference->content ref) "\n"
 		 "for f in $IN; do cp $f $f.c; INFILES=\"$INFILES $f.c\"; done\n"
-		 "gcc $CFLAGS -o output $INFILES"))
+		 "gcc $CFLAGS $INFILES"))
 @
 

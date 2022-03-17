@@ -55,7 +55,7 @@ A trick in debugging.
 int fixed_point = 1;
 @
 
-@[single module C@:C Project@]
+@[single module C@:C Program@]
 CFLAGS=-g
 IN="@[whole program@:C Source@]"
 OUT="single-module-c"
@@ -69,7 +69,7 @@ OUT="single-module-c"
 @[tangle@]
 @{user space@}
 (define (output file)
-  (copy-as (mweb-convert-to (tangle-as "single module C" "C Program") "C Program" "Executable") file))
+  (copy-as (tangle-as "single module C" "Executable") file))
 @{output@}
 @
 

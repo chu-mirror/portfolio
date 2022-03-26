@@ -1,36 +1,36 @@
 # Data Encryption Standard
 
-The basic two types of object we are going to deal with.
+DES algorithm has its own data structures.
 @[data@]
-typedef struct text { uint32_t l, r; } text;
-typedef uint64_t key;
+typedef struct text {uint32_t l, r;} text_t;
+typedef uint64_t block_t;
 @
 
 @[functions@]
-uint64_t text_block(text tx)
+block_t text_block(text_t tx)
 {
-	return (uint64_t)tx.l << 32 | (uint64_t)tx.r;
+	return (block_t)tx.l << 32 | (block_t)tx.r;
 }
-text block_text(uint64_t b)
-{ text tx = {b >> 32, b};
+text_t block_text(block_t b)
+{ text_t tx = {b >> 32, b};
 	return tx;
 }
 @
 @[prototypes@]
-uint64_t text_block(text);
-text block_text(uint64_t);
+block_t text_block(text_t);
+text_t block_text(block_t);
 @
 
 @[functions@]
-uint64_t encrypt(uint64_t b, key k)
-{ text tx = block_text(b);
+block_t DES_encrypt(block_t b, block_t k)
+{ text_t tx = block_text(b);
 	@{initial permutation for encrypting@}
 	@{go through rounds for encrypting@}
 	@{inverse initial permutation for encrypting@}
 	return text_block(tx);
 }
-uint64_t decrypt(uint64_t b, key k)
-{ text tx = block_text(b);
+block_t DES_decrypt(block_t b, block_t k)
+{ text_t tx = block_text(b);
 	@{initial permutation for decrypting@}
 	@{go through rounds for decrypting@}
 	@{inverse initial permutation for decrypting@}
@@ -39,13 +39,13 @@ uint64_t decrypt(uint64_t b, key k)
 @
 
 @[prototypes@]
-uint64_t encrypt(uint64_t, key);
-uint64_t decrypt(uint64_t, key);
+block_t DES_encrypt(block_t, block_t);
+block_t DES_decrypt(block_t, block_t);
 @
 
 @[functions@]
-uint64_t select_bits(uint64_t in, int len_in, int len_out, int *p)
-{ int i; uint64_t out;
+block_t select_bits(block_t in, int len_in, int len_out, int *p)
+{ int i; block_t out;
 	for (i = 0, out = 0; i < len_out; i++) {
 		@{get |p[i]|th bit of |in|, move it to |i+1|th bit of |out|@}
 	}
@@ -54,13 +54,13 @@ uint64_t select_bits(uint64_t in, int len_in, int len_out, int *p)
 @
 
 @[get |p[i]|th bit of |in|, move it to |i+1|th bit of |out|@]
-{ uint64_t m = (uint64_t)1 << (len_in-p[i]); /* mask */
+{ block_t m = (block_t)1 << (len_in-p[i]); /* mask */
 	out |= ((m & in) >> (len_in-p[i])) << (len_out-i-1);
 }
 @
 
 @[prototypes@]
-uint64_t select_bits(uint64_t, int, int, int *);
+block_t select_bits(block_t, int, int, int *);
 @
 
 ## Initial Permutation
@@ -86,8 +86,8 @@ tx = block_text(select_bits(text_block(tx), 64, 64, IPi));
 ## Rounds
 
 @[functions@]
-text basic_round(text tx, int n, key k)
-{ text t;
+text_t basic_round(text_t tx, int n, block_t k)
+{ text_t t;
 	t.l = tx.r;
 	t.r = tx.l ^ f(tx.r, KS(n, k));
 	return t;
@@ -95,7 +95,7 @@ text basic_round(text tx, int n, key k)
 @
 
 @[prototypes@]
-text basic_round(text, int, key);
+text_t basic_round(text_t, int, block_t);
 @
 
 @[go through rounds for encrypting@]
@@ -103,7 +103,7 @@ text basic_round(text, int, key);
 	for (i = 1; i <= 16; i++) {
 		tx = basic_round(tx, i, k);
 	}
-	{ text t;
+	{ text_t t;
 		t.l = tx.r;
 		t.r = tx.l;
 		tx = t;
@@ -117,7 +117,7 @@ text basic_round(text, int, key);
 	for (i = 16; i >= 1; i--) {
 		tx = basic_round(tx, i, k);
 	}
-	{ text t;
+	{ text_t t;
 		t.l = tx.r;
 		t.r = tx.l;
 		tx = t;
@@ -128,10 +128,10 @@ text basic_round(text, int, key);
 ## The Cipher Function
 
 @[functions@]
-uint64_t f(uint64_t r, uint64_t k)
-{ uint64_t out, t; int i;
+block_t f(block_t r, block_t k)
+{ block_t out, t; int i;
 	out = select_bits(r, 32, 48, E) ^ k;
-	for (i = 0, t = 0; i < 8; i++) { uint64_t s;
+	for (i = 0, t = 0; i < 8; i++) { block_t s;
 		s = (out >> (6*(7-i))) & 0x3F;
 		t = (t<<4) + S[i][((s&0x20)>>4) | (s&1)][(s&0x1F)>>1];
 	}
@@ -141,16 +141,16 @@ uint64_t f(uint64_t r, uint64_t k)
 @
 
 @[prototypes@]
-uint64_t f(uint64_t, uint64_t);
+block_t f(block_t, block_t);
 @
 
 ## Key Scheme
 @[functions@]
-uint64_t KS(int n, key k)
-{ uint64_t c, d; int i; static int sf[16] = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1};
+block_t KS(int n, block_t k)
+{ block_t c, d; int i; static int sf[16] = { 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1};
 	c = select_bits(k, 64, 28, PC_1_C);
 	d = select_bits(k, 64, 28, PC_1_D);
-	for (i = 0; i < n; i++) { uint64_t c_, d_;
+	for (i = 0; i < n; i++) { block_t c_, d_;
 		c_ = ((c << sf[i]) | (c >> (28-sf[i]))) & 0xFFFFFFF;
 		d_ = ((d << sf[i]) | (d >> (28-sf[i]))) & 0xFFFFFFF;
 		c = c_, d = d_;
@@ -160,16 +160,66 @@ uint64_t KS(int n, key k)
 @
 
 @[prototypes@]
-uint64_t KS(int, key);
+block_t KS(int, block_t);
 @
 
-## A simple wraper
-@[main@]
-{ uint64_t b, k;
-	scanf("%lX%lX", &b, &k);
-	printf("%016lX\n", encrypt(b, k));
-	printf("%016lX\n", decrypt(encrypt(b, k), k));
+## Interface to Framework
+
+According to FIPS46-3, we have:
+@[macros@]
+#define CIPHER_BLOCK_SIZE 8
+#define CIPHER_KEY_SIZE 8
+@
+
+@[functions@]
+cipher_block_t encrypt(cipher_block_t in, cipher_key_t key)
+{ block_t b, k; int i;
+	b = k = 0;
+	for (i = 0; i < 7; i++) {
+		b += in.bytes[i], b <<= 8;
+		k += key.bytes[i], k <<= 8;
+	}
+	b += in.bytes[7]; k += key.bytes[7];
+#ifdef TESTING
+	printf("%016lX to ", b);
+#endif
+	b = DES_encrypt(b, k);
+#ifdef TESTING
+	printf("%016lX by %016lX\n", b, k);
+#endif
+	for (i = 0; i < 8; i++) {
+		in.bytes[7-i] = b % (1<<8);
+		b >>= 8;
+	}
+	return in;
 }
+
+cipher_block_t decrypt(cipher_block_t in, cipher_key_t key)
+{ block_t b, k; int i;
+	b = k = 0;
+	for (i = 0; i < 7; i++) {
+		b += in.bytes[i], b <<= 8;
+		k += key.bytes[i], k <<= 8;
+	}
+	b += in.bytes[7]; k += key.bytes[7];
+#ifdef TESTING
+	printf("%016lX to ", b);
+#endif
+	b = DES_decrypt(b, k);
+#ifdef TESTING
+	printf("%016lX by %016lX\n", b, k);
+#endif
+	for (i = 0; i < 8; i++) {
+		in.bytes[7-i] = b % (1<<8);
+		b >>= 8;
+	}
+	return in;
+}
+@
+
+@[output@]
+(mweb-change-type "functions" "Tested C Code")
+(output "DES")
 @
 
 ## Appendix
@@ -291,8 +341,4 @@ int PC_2[48] = {
 };
 @
 
-@[output@]
-(output "DES")
-@
-
-@i crypto-common.mwc
+@i block-cipher.mwc

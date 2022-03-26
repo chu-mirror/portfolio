@@ -2,9 +2,10 @@
 
 This extension defines the structure of a simple C program.
 
-@[whole program@:C Module@]
+@[whole program@:C Code@]
 @{includes@}
 @{macros@}
+@{datatypes@}
 @{data@}
 @{prototypes@}
 @{functions@}
@@ -12,6 +13,10 @@ This extension defines the structure of a simple C program.
 
 To initialize code chunks, because _MWEB(prototype)_ does not accept empty code chunk.
 @[macros@]
+
+@
+
+@[datatypes@]
 
 @
 
@@ -27,27 +32,45 @@ To initialize code chunks, because _MWEB(prototype)_ does not accept empty code 
 
 @
 
-Some conventional header files.
+Some conventional header files, they are needed in almost any non-trivial C program.
 @[includes@]
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
-#include <math.h>
 @
 
-You must have it, right?
+The main function.
 @[whole program@]
 int
 main(int argc, char *argv[])
 {
 	@{initialize environment@}
+#ifndef TESTING
 	@{main@}
+#else
+	@{test@}
+#endif
 }
 @
 
 @[initialize environment@]
 
+@
+
+@[main@]
+
+@
+
+@[test@]
+
+@
+
+@[define code chunk types@]
+(mweb-type "Tested C Code")
+(mweb-new-relation "Tested C Code" "C Code"
+  (lambda (ref)
+    (content->reference
+      (string-append "#define TESTING\n" (reference->content ref) "\n#undef TESTING"))))
 @
 
 A trick in debugging.
@@ -58,12 +81,6 @@ int fixed_point = 1;
 @[single module C@:C Program@]
 CFLAGS=-g
 IN="@[whole program@:C Source@]"
-OUT="single-module-c"
-@{specification of output@}
-@
-
-@[specification of output@]
-
 @
 
 @[tangle@]
@@ -73,3 +90,5 @@ OUT="single-module-c"
 @{output@}
 @
 
+_output_ code chunk does not need initialization, every single-module-C program need to
+output its executable file.

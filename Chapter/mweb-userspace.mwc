@@ -40,8 +40,8 @@ A lot of convertings are delegated to other programs.
 ### C code
 Some definitions of types related to C programming language.
 @[define code chunk types@]
-(mweb-type "C Module" "C Source" "C Program")
-(mweb-new-relation "C Module" "C Source" (lambda (ref) ref))
+(mweb-type "C Code" "C Source" "C Program")
+(mweb-new-relation "C Code" "C Source" (lambda (ref) ref))
 (mweb-new-relation "C Program" "Executable"
   (lambda (ref)
     (let ((compile-script @{extend |ref| to compiling script@}))

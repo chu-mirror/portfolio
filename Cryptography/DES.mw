@@ -21,7 +21,7 @@ block_t text_block(text_t);
 text_t block_text(block_t);
 @
 
-@[functions@]
+@[functions @: C Code@]
 block_t DES_encrypt(block_t b, block_t k)
 { text_t tx = block_text(b);
 	@{initial permutation for encrypting@}
@@ -102,6 +102,9 @@ text_t basic_round(text_t, int, block_t);
 { int i;
 	for (i = 1; i <= 16; i++) {
 		tx = basic_round(tx, i, k);
+#ifdef TESTING
+	printf("round %d: %016lX\n", i, tx);
+#endif
 	}
 	{ text_t t;
 		t.l = tx.r;
@@ -218,7 +221,7 @@ cipher_block_t decrypt(cipher_block_t in, cipher_key_t key)
 @
 
 @[output@]
-(mweb-change-type "functions" "Tested C Code")
+; (mweb-change-type "go through rounds for encrypting" "Tested C Code")
 (output "DES")
 @
 

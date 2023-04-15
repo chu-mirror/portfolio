@@ -85,10 +85,19 @@ IN="@[whole program@:C Source@]"
 
 @[tangle@]
 @{user space@}
+@{procedures for output@}
+@{output@}
+@
+
+@[procedures for output@]
 (define (output file)
   (copy-as (tangle-as "single module C" "Executable") file))
-@{output@}
+(define (output-src file)
+  (copy-as (tangle-as "single module C" "C Source") file))
 @
 
 _output_ code chunk does not need initialization, every single-module-C program need to
 output its executable file.
+
+@i mweb-userspace.mwc
+

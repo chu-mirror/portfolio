@@ -159,4 +159,4 @@ Because we are doing things with bits, it's better to include this file.
 #include <stdint.h>
 @
 
-@i mweb-userspace.mwc single-module-c.mwc
+@i single-module-c.mwc

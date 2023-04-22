@@ -1,0 +1,32 @@
+@[proved C@]
+@{includes@}
+@{macros@}
+@{proved types@}
+@{proved data@}
+@{proved functions@}
+@
+
+@[proved types@]
+
+@
+
+@[proved data@]
+
+@
+
+@[proved functions@]
+
+@
+
+@[datatypes@]
+@{proved types@}
+@
+
+@[functions@]
+@{proved functions@}
+@
+
+@[procedures for output@]
+(define (output-verified file) (copy-as (tangle-as "proved C" "C Source") file))
+@
+

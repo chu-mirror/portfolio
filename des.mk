@@ -1,1 +1,1 @@
-SUB = Cryptography lab
+SUB = Cryptography ProvedC

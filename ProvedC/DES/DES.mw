@@ -139,7 +139,7 @@ uint64_t f(uint64_t, uint64_t);
 @[proved functions@]
 uint64_t circle_shiftl (uint64_t b, int len_b, int n)
 {
-	return ((b << n) | (b >> (n-len_b))) & (((uint64_t) 1 << n) - 1);
+	return ((b << n) | (b >> (len_b-n))) & (((uint64_t) 1 << len_b) - 1);
 }
 @
 

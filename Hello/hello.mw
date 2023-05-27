@@ -1,0 +1,10 @@
+
+@[main@]
+printf("Hello\n");
+@
+
+@[output@]
+(output "hello")
+@
+
+@i single-module-c.mwc

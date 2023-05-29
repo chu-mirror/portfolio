@@ -4,6 +4,7 @@ Require Import ProvedDES.verified.
 #[export] Instance CompSpecs : compspecs. make_compspecs prog. Defined.
 Definition Vprog : varspecs.  mk_varspecs prog. Defined.
 
+(* Tactics for convenience *)
 Ltac vst_const :=
   unfold Int.max_signed in *;
   unfold Int.max_unsigned in *;
@@ -15,31 +16,26 @@ Ltac vst_const :=
   unfold Int64.zwordsize in *;
   simpl in *; try lia.
 
-Definition block_l (b: Z) : int64 :=
-  (Int64.unsigned_bitfield_extract 32 32 (Int64.repr b)).
+(* functional model *)
+Definition block_l (b: int64) : int64 := Int64.unsigned_bitfield_extract 32 32 b.
 
-Theorem block_l_fspec: forall b i,
-    0 <= i < 32 ->
-    Int64.testbit (block_l b) i = Z.testbit b (i + 32).
-Proof.
-  intros.
-  unfold block_l.
-  rewrite Int64.bits_unsigned_bitfield_extract; vst_const.
-  destruct H as [H1 H2].
-  rewrite zlt_true; try lia.
-  rewrite Int64.testbit_repr; vst_const.
-  reflexivity.
-Qed.
+Definition block_r (b: int64) : int64 := Int64.unsigned_bitfield_extract 0 32 b.
 
-Definition block_r (b: Z) : int64 :=
-  (Int64.unsigned_bitfield_extract 0 32 (Int64.repr b)).
+Definition bit_position (i w: Z) : Z := w-i.
+
+Definition select_bits (in_ len_in: Z) (positions : list Z) : Z :=
+  fold_left
+    (fun out_t p => Zbits.Zshiftin (Z.testbit in_ (bit_position p len_in)) out_t)
+    positions 0.
+
+(* API spec *)
 
 Definition block_l_spec : ident * funspec :=
   DECLARE _block_l
-    WITH b: Z
+    WITH b: int64
     PRE [ tulong ]
-      PROP (0 <= b <= Int64.max_unsigned)
-      PARAMS (Vlong (Int64.repr b))
+      PROP ()
+      PARAMS (Vlong b)
       SEP ()
     POST [ tulong ]
       PROP ()
@@ -48,22 +44,86 @@ Definition block_l_spec : ident * funspec :=
 
 Definition block_r_spec : ident * funspec :=
   DECLARE _block_r
-    WITH b: Z
+    WITH b: int64
     PRE [ tulong ]
-      PROP (0 <= b <= Int64.max_unsigned)
-      PARAMS (Vlong (Int64.repr b))
+      PROP ()
+      PARAMS (Vlong b)
       SEP ()
     POST [ tulong ]
       PROP ()
       RETURN (Vlong (block_r b))
       SEP ().
 
-Definition bit_position (i w: Z) : Z := w-i.
+Definition select_bits_spec : ident * funspec :=
+  DECLARE _select_bits
+    WITH in_ : Z, len_in : Z, len_out : Z,
+         positions : list Z, a : val, sh : share
+    PRE [ tulong, tint, tint, (tptr tint) ]
+      PROP ( readable_share sh;
+             0 < len_out <= Int64.zwordsize; 0 < len_in <= Int64.zwordsize;
+             0 <= in_ < Int64.max_unsigned;
+             Forall (fun x => 1 <= x <= len_in) positions)
+      PARAMS (Vlong (Int64.repr in_);
+              Vint (Int.repr len_in); Vint (Int.repr len_out); a)
+      SEP (data_at sh (tarray tint len_out) (map Vint (map Int.repr positions)) a)
+    POST [ tulong ]
+      PROP ()
+      RETURN (Vlong (Int64.repr (select_bits in_ len_in positions)))
+      SEP (data_at sh (tarray tint len_out) (map Vint (map Int.repr positions)) a).
 
-Definition select_bits (in_ len_in: Z) (positions : list Z) : Z :=
-  fold_left
-    (fun out_t p => Zbits.Zshiftin (Z.testbit in_ (bit_position p len_in)) out_t)
-    positions 0.
+Definition Gprog :=
+  ltac:(with_library prog
+          [block_l_spec; block_r_spec; select_bits_spec]).
+
+(* Proofs *)
+
+Theorem block_l_fspec: forall b i,
+    0 <= i < 32 ->
+    Int64.testbit (block_l b) i = Int64.testbit b (i + 32).
+Proof.
+  intros.
+  unfold block_l.
+  rewrite Int64.bits_unsigned_bitfield_extract; vst_const.
+  destruct H as [H1 H2].
+  rewrite zlt_true; try lia.
+  reflexivity.
+Qed.
+
+Lemma body_block_l: semax_body Vprog Gprog f_block_l block_l_spec.
+Proof.
+  start_function.
+  forward.
+  entailer!.
+  f_equal.
+  apply Int64.same_bits_eq.
+  unfold block_l.
+  intros.
+  rewrite Int64.bits_shru; vst_const.
+  rewrite Int64.unsigned_repr; vst_const.
+  rewrite Int64.bits_unsigned_bitfield_extract; vst_const.
+  destruct (zlt (i+32) Int64.zwordsize).
+  - repeat rewrite zlt_true; vst_const. reflexivity.
+  - repeat rewrite zlt_false; vst_const.
+Qed.
+
+Lemma body_block_r: semax_body Vprog Gprog f_block_r block_r_spec.
+Proof.
+  start_function.
+  forward.
+  entailer!.
+  f_equal. unfold block_r.
+  rewrite Int.unsigned_repr_eq.
+  unfold "mod". simpl.
+  unfold block_r.
+  rewrite Int64.unsigned_bitfield_extract_by_shifts; vst_const.
+  rewrite Int64.shru_shl; vst_const;
+    try (unfold Int64.iwordsize; rewrite ltu64_repr_zlt; vst_const).
+  rewrite Int64.sub_idem.
+  rewrite Int64.shru_zero.
+  rewrite Int64.unsigned_repr; vst_const.
+  rewrite Int64.zero_ext_and; vst_const.
+  reflexivity.
+Qed.
 
 Lemma Zshiftl_n_succ_m:
   forall n m, 0 <= m -> Z.shiftl n (Z.succ m) = Z.shiftl (Z.double n) m.
@@ -200,27 +260,6 @@ Proof.
       reflexivity.
 Qed.
 
-Definition select_bits_spec : ident * funspec :=
-  DECLARE _select_bits
-    WITH in_ : Z, len_in : Z, len_out : Z,
-         positions : list Z, a : val, sh : share
-    PRE [ tulong, tint, tint, (tptr tint) ]
-      PROP ( readable_share sh;
-             0 < len_out <= Int64.zwordsize; 0 < len_in <= Int64.zwordsize;
-             0 <= in_ < Int64.max_unsigned;
-             Forall (fun x => 1 <= x <= len_in) positions)
-      PARAMS (Vlong (Int64.repr in_);
-              Vint (Int.repr len_in); Vint (Int.repr len_out); a)
-      SEP (data_at sh (tarray tint len_out) (map Vint (map Int.repr positions)) a)
-    POST [ tulong ]
-      PROP ()
-      RETURN (Vlong (Int64.repr (select_bits in_ len_in positions)))
-      SEP (data_at sh (tarray tint len_out) (map Vint (map Int.repr positions)) a).
-
-Definition Gprog :=
-  ltac:(with_library prog
-          [block_l_spec; block_r_spec; select_bits_spec]).
-
 Lemma body_select_bits: semax_body Vprog Gprog f_select_bits select_bits_spec.
 Proof.
   start_function.
@@ -330,41 +369,3 @@ Proof.
     apply sublist_same; reflexivity.
 Qed.
            
-Lemma body_block_l: semax_body Vprog Gprog f_block_l block_l_spec.
-Proof.
-  start_function.
-  forward.
-  entailer!.
-  f_equal.
-  apply Int64.same_bits_eq.
-  unfold block_l.
-  intros.
-  rewrite Int64.bits_shru; vst_const.
-  rewrite Int64.unsigned_repr; vst_const.
-  destruct (zlt (i+32) Int64.zwordsize).
-  - rewrite Int64.bits_unsigned_bitfield_extract; vst_const.
-    repeat rewrite zlt_true; try lia. reflexivity.
-  - rewrite Int64.bits_unsigned_bitfield_extract; vst_const.
-    repeat rewrite zlt_false; try lia.
-Qed.
-
-Lemma body_block_r: semax_body Vprog Gprog f_block_r block_r_spec.
-Proof.
-  start_function.
-  forward.
-  entailer!.
-  f_equal. unfold block_r.
-  rewrite Int.unsigned_repr_eq.
-  unfold "mod". simpl.
-  unfold block_r.
-  rewrite Int64.unsigned_bitfield_extract_by_shifts; vst_const.
-  rewrite Int64.shru_shl; vst_const;
-    try (unfold Int64.iwordsize; rewrite ltu64_repr_zlt; vst_const).
-  rewrite Int64.sub_idem.
-  rewrite Int64.shru_zero.
-  rewrite Int64.unsigned_repr; vst_const.
-  rewrite Int64.zero_ext_and; vst_const.
-  unfold Int64.and.
-  repeat rewrite Int64.unsigned_repr; vst_const.
-  reflexivity.
-Qed.
